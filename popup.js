@@ -1,31 +1,49 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const keyColorIn = document.getElementById("keyColor");
-  const strColorIn = document.getElementById("strColor");
-  const numColorIn = document.getElementById("numColor");
-  const showPanelIn = document.getElementById("showPanel");
-  const saveBtn = document.getElementById("saveBtn");
+  const elements = {
+    keyColor: document.getElementById("keyColor"),
+    strColor: document.getElementById("strColor"),
+    numColor: document.getElementById("numColor"),
+    showPanel: document.getElementById("showPanel"),
+    showTotalSellers: document.getElementById("showTotalSellers"),
+    showUniqueSellers: document.getElementById("showUniqueSellers"),
+    showInvalidDomains: document.getElementById("showInvalidDomains"),
+    showInvalidAds: document.getElementById("showInvalidAds"),
+    showInvalidAppAds: document.getElementById("showInvalidAppAds"),
+    showTotalInvalid: document.getElementById("showTotalInvalid"),
+    showTotalFound: document.getElementById("showTotalFound")
+  };
 
-  // Загружаем текущие
-  chrome.storage.local.get({
+  const defaults = {
     keyColor: '#9cdcfe',
     strColor: '#ce9178',
     numColor: '#b5cea8',
-    showPanel: true
-  }, (cfg) => {
-    keyColorIn.value = cfg.keyColor;
-    strColorIn.value = cfg.strColor;
-    numColorIn.value = cfg.numColor;
-    showPanelIn.checked = cfg.showPanel;
+    showPanel: true,
+    showTotalSellers: true,
+    showUniqueSellers: true,
+    showInvalidDomains: true,
+    showInvalidAds: true,
+    showInvalidAppAds: true,
+    showTotalInvalid: true,
+    showTotalFound: true
+  };
+
+  chrome.storage.local.get(defaults, (cfg) => {
+    for (const key in elements) {
+      if (elements[key].type === 'checkbox') {
+        elements[key].checked = cfg[key];
+      } else {
+        elements[key].value = cfg[key];
+      }
+    }
   });
 
-  saveBtn.addEventListener("click", () => {
-    chrome.storage.local.set({
-      keyColor: keyColorIn.value,
-      strColor: strColorIn.value,
-      numColor: numColorIn.value,
-      showPanel: showPanelIn.checked
-    }, () => {
-      // Обновляем текущую вкладку
+  document.getElementById("saveBtn").addEventListener("click", () => {
+    const newConfig = {};
+    for (const key in elements) {
+      newConfig[key] = elements[key].type === 'checkbox' ? elements[key].checked : elements[key].value;
+    }
+    
+    chrome.storage.local.set(newConfig, () => {
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         chrome.tabs.reload(tabs[0].id);
       });

@@ -14,6 +14,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         clearTimeout(timeoutId);
         sendResponse({ text: null, success: false });
       });
-    return true; // Асинхронный ответ
+    return true; // Указывает, что ответ будет отправлен асинхронно
   }
 });

@@ -11,8 +11,8 @@
   "content_scripts": [
     {
       "matches": ["*://*/sellers.json", "*://*/*sellers.json*"],
-      "js": ["content.js"],
       "css": ["content.css"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
