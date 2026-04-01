@@ -62,6 +62,45 @@ body.sellers-inspector-active {
   background: var(--muted);
 }
 
+/* ─── Switch Button ──────────────────────────────────────────── */
+
+.switch-file-btn {
+  width: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
+}
+
+.switch-file-btn:hover {
+  background: var(--accent-glow);
+  border-color: rgba(51,102,153,0.4);
+  color: #7ab8e8;
+}
+
+.switch-file-btn:active {
+  transform: scale(0.98);
+}
+
+.switch-file-btn svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
 .overview-title {
   font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--muted);

@@ -6,13 +6,13 @@
  *  - URL scheme validation (only https allowed)
  *  - Domain-level response caching to avoid duplicate fetches
  *  - Configurable timeout with AbortController
- *  - Path whitelist: only /ads.txt and /app-ads.txt are permitted
+ *  - Path whitelist: only allowed paths are permitted
  */
 
 const FETCH_TIMEOUT_MS = 8000;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-const ALLOWED_PATHS = ['/ads.txt', '/app-ads.txt'];
+const ALLOWED_PATHS = ['/ads.txt', '/app-ads.txt', '/sellers.json', '/buyers.json'];
 
 /**
  * Simple in-memory cache with TTL.
@@ -56,7 +56,7 @@ function setCachedResponse(url, text, success) {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'fetchAds') {
+  if (request.action === 'fetchAds' || request.action === 'fetchUrl') {
     const url = request.url;
 
     // Validate URL
@@ -78,7 +78,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     fetch(url, {
       signal: controller.signal,
-      headers: { 'Accept': 'text/plain' }
+      headers: { 'Accept': 'text/plain, application/json' }
     })
       .then(res => {
         clearTimeout(timeoutId);

@@ -189,26 +189,31 @@
       margin-top: 2px;
     }
 
-    /* ─── Save Button ─────────────────────────────── */
+    /* ─── Open Buttons ────────────────────────────── */
+
+    .open-btns-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
 
     .sellers-btn {
-      width: 100%;
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 10px 16px;
+      gap: 6px;
+      padding: 10px 10px;
       font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.02em;
       color: #c8d0e8;
       background: #13161e;
       border: 1px solid #2a3045;
       border-radius: 7px;
       cursor: pointer;
       transition: all 0.15s;
-      margin-bottom: 10px;
     }
 
     .sellers-btn:hover {
@@ -220,11 +225,13 @@
     .sellers-btn:active { transform: scale(0.98); }
 
     .sellers-btn svg {
-      width: 14px;
-      height: 14px;
+      width: 13px;
+      height: 13px;
       fill: currentColor;
       flex-shrink: 0;
     }
+
+    /* ─── Save Button ─────────────────────────────── */
 
     .save-btn {
       width: 100%;
@@ -290,14 +297,23 @@
 
   <div class="content">
 
-    <!-- ── Open sellers.json Button ────────────────── -->
-    <button class="sellers-btn" id="openSellersBtn">
-      <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
-        <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
-      </svg>
-      Open /sellers.json
-    </button>
+    <!-- ── Open sellers.json / buyers.json Buttons ── -->
+    <div class="open-btns-row">
+      <button class="sellers-btn" id="openSellersBtn">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
+          <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
+        </svg>
+        /sellers.json
+      </button>
+      <button class="sellers-btn" id="openBuyersBtn">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
+          <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
+        </svg>
+        /buyers.json
+      </button>
+    </div>
 
     <!-- ── Syntax Colors ─────────────────────────── -->
     <div class="card">
@@ -337,11 +353,11 @@
 
       <div class="toggle-list">
         <div class="toggle-row">
-          <label class="toggle-label" for="showTotalSellers">Total Sellers</label>
+          <label class="toggle-label" for="showTotalSellers">Total Sellers/Buyers</label>
           <label class="switch"><input type="checkbox" id="showTotalSellers"><span class="switch-track"></span></label>
         </div>
         <div class="toggle-row">
-          <label class="toggle-label" for="showUniqueSellers">Unique Sellers</label>
+          <label class="toggle-label" for="showUniqueSellers">Unique Sellers/Buyers</label>
           <label class="switch"><input type="checkbox" id="showUniqueSellers"><span class="switch-track"></span></label>
         </div>
         <div class="toggle-row">
