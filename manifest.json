@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Sellers.json Inspector",
-  "version": "1.0",
-  "description": "Parsing, highlighting, and analysis of sellers.json files.",
+  "version": "1.1.0",
+  "description": "Parsing, highlighting, and analysis of sellers.json files with IAB-spec ads.txt validation.",
   "permissions": ["storage"],
   "host_permissions": ["*://*/*"],
   "icons": {
@@ -13,7 +13,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/sellers.json", "*://*/*sellers.json*"],
+      "matches": [
+        "*://*/sellers.json",
+        "*://*/sellers.json?*",
+        "*://*/*sellers.json",
+        "*://*/*sellers.json?*"
+      ],
       "css": ["content.css"],
       "js": ["content.js"],
       "run_at": "document_idle"

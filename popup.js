@@ -16,9 +16,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const defaults = {
     keyColor: '#FF8C00',
-    strColor: '#7bbf8e',
-    numColor: '#F0FFF0',
-    boolColor: '#F0FFF0',
+    strColor: '#F0FFF0',
+    numColor: '#77c78a',
+    boolColor: '#7bbf8e',
     showPanel: true,
     showTotalSellers: true,
     showUniqueSellers: true,
