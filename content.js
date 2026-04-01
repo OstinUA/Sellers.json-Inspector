@@ -94,21 +94,21 @@ function buildOverviewPanel(data, config) {
 
   if (data.sellers && Array.isArray(data.sellers)) {
     data.sellers.forEach(s => {
-      categorizedSellers.total.push(s); // Сохраняем для выгрузки всех
+      categorizedSellers.total.push(s); 
       
       if (s.domain) {
         const rawDomain = s.domain.trim();
         if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(rawDomain)) {
           if (!seenDomains.has(rawDomain.toLowerCase())) {
             seenDomains.add(rawDomain.toLowerCase());
-            categorizedSellers.unique.push(s); // Сохраняем уникальные
+            categorizedSellers.unique.push(s); 
           }
-          if (s.seller_id) sellersToAnalyze.push(s); // Передаем ВЕСЬ объект на анализ
+          if (s.seller_id) sellersToAnalyze.push(s); 
         } else {
-          categorizedSellers.invalidDomain.push(s); // Некорректный домен
+          categorizedSellers.invalidDomain.push(s); 
         }
       } else {
-        categorizedSellers.invalidDomain.push(s); // Нет домена
+        categorizedSellers.invalidDomain.push(s); 
       }
     });
   }
@@ -152,7 +152,6 @@ function buildOverviewPanel(data, config) {
   });
 }
 
-// Хелпер для генерации строки статистики
 function createStatRow(id, label, val, tip, isHidden = false) {
   const display = isHidden ? 'display:none;' : '';
   return `
@@ -229,7 +228,6 @@ async function checkDomain(sellerObj) {
   const hasAds = adsText && adsText.includes(sellerObj.seller_id);
   const hasAppAds = appAdsText && appAdsText.includes(sellerObj.seller_id);
 
-  // Добавляем сами объекты селлеров в нужные категории
   if (!hasAds) categorizedSellers.invAds.push(sellerObj);
   if (!hasAppAds) categorizedSellers.invApp.push(sellerObj);
   if (!hasAds && !hasAppAds) categorizedSellers.totInv.push(sellerObj);
@@ -255,12 +253,10 @@ function fetchFromBackground(url) {
 
 // --- Инжект Модалки и Логика Тултипов ---
 function injectModalAndTooltip() {
-  // Тултип
   const tooltip = document.createElement('div');
   tooltip.id = 'sellers-tooltip';
   document.body.appendChild(tooltip);
 
-  // Модалка
   const modalHTML = `
     <div id="sellers-modal-overlay">
       <div id="sellers-modal">
@@ -280,12 +276,10 @@ function injectModalAndTooltip() {
   `;
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-  // Логика Тултипов
   document.addEventListener('mousemove', e => {
     if (e.target.matches('.stat-label[data-tip]')) {
       tooltip.innerText = e.target.getAttribute('data-tip');
       tooltip.classList.add('visible');
-      // Позиционируем чуть выше и левее курсора
       tooltip.style.left = (e.clientX - 260) + 'px'; 
       tooltip.style.top = (e.clientY - 10) + 'px';
     } else {
@@ -293,7 +287,6 @@ function injectModalAndTooltip() {
     }
   });
 
-  // Логика клика по лейблам
   document.addEventListener('click', e => {
     if (e.target.matches('.stat-label[data-category]')) {
       const category = e.target.getAttribute('data-category');
@@ -302,9 +295,17 @@ function injectModalAndTooltip() {
     }
   });
 
-  // Логика кнопок модалки
+  // Логика закрытия модалки по крестику
   document.getElementById('modalCloseBtn').addEventListener('click', () => {
     document.getElementById('sellers-modal-overlay').classList.remove('visible');
+  });
+
+  // Логика закрытия модалки по клику вне окна
+  document.getElementById('sellers-modal-overlay').addEventListener('click', (e) => {
+    // Проверяем, что клик был именно по фону, а не по самому окну внутри
+    if (e.target.id === 'sellers-modal-overlay') {
+      e.target.classList.remove('visible');
+    }
   });
 
   document.getElementById('modalCopyBtn').addEventListener('click', function() {
@@ -328,7 +329,6 @@ function injectModalAndTooltip() {
 function openModal(category, labelName) {
   currentModalCategory = category;
   
-  // Собираем валидный sellers.json с оригинальными метаданными
   const exportData = {
     ...originalNetworkData,
     sellers: categorizedSellers[category] || []
