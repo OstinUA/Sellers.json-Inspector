@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Sellers.json Inspector",
   "version": "1.0",
-  "description": "Парсинг, подсветка и анализ sellers.json файлов.",
+  "description": "Parsing, highlighting, and analysis of sellers.json files.",
   "permissions": ["storage"],
   "host_permissions": ["*://*/*"],
   "icons": {
