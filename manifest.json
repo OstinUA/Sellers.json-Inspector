@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Sellers.json Inspector",
+  "version": "1.0",
+  "description": "Парсинг, подсветка и анализ sellers.json файлов.",
+  "permissions": ["storage"],
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*/sellers.json", "*://*/*sellers.json*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

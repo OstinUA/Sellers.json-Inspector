@@ -1,0 +1,80 @@
+/* Основные переменные из твоего дизайна */
+:root {
+  --bg: #0c0e13;
+  --surface: #13161e;
+  --surface2: #1a1e2a;
+  --border: #2a3045;
+  --border2: #323a55;
+  --text: #f0f4ff;
+  --text2: #c8d0e8;
+  --muted: #5a6480;
+  --accent: #4fc3f7;
+  --accent-glow: rgba(79,195,247,0.18);
+  --green: #4ade80;
+  --red: #f87171;
+  --purple: #c084fc;
+}
+
+body.sellers-inspector-active {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  margin: 0;
+  padding: 20px;
+  padding-right: 350px;
+}
+
+.json-container { font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+.json-key { color: #9cdcfe; font-weight: bold; }
+.json-string { color: #ce9178; }
+.json-number { color: #b5cea8; }
+
+/* Боковая панель в твоем стиле */
+#sellers-overview-panel {
+  position: fixed; top: 20px; right: 20px; width: 320px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 9px; padding: 15px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.55);
+  font-family: 'DM Sans', sans-serif; z-index: 9999;
+}
+
+.overview-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;
+}
+
+.overview-stat { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: var(--text2); }
+.stat-val { font-weight: 600; color: var(--text); }
+
+/* Кнопка и прогресс-бар */
+.vbtn {
+  width: 100%; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600; padding: 9px 12px;
+  border-radius: 6px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text);
+  cursor: pointer; transition: all 0.15s; margin-top: 15px;
+}
+.vbtn.primary { background: var(--accent-glow); border-color: rgba(79,195,247,0.35); color: var(--accent); }
+.vbtn.primary:hover:not(:disabled) { background: rgba(79,195,247,0.22); }
+.vbtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+#verifyProgress { display: none; margin-top: 15px; }
+#verifyProgress.visible { display: block; }
+.progress-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+#verifyProgressBarInner {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--purple), var(--accent));
+  border-radius: 2px; transition: width 0.2s ease;
+}
+.progress-meta { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted); }
+
+/* Бейджи статусов (возле строк JSON) */
+.seller-badges { margin-left: 10px; display: inline-flex; gap: 5px; user-select: none; }
+.badge {
+  font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.badge-wait { background: rgba(252,211,77,0.1); color: #fcd34d; border: 1px solid rgba(252,211,77,0.22); }
+.badge-ok   { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
+.badge-err  { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }

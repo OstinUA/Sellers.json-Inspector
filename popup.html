@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; width: 250px; padding: 15px; background: #1e1e1e; color: #fff; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    input[type="color"] { cursor: pointer; border: none; background: none; width: 30px; height: 30px; }
+    button { width: 100%; padding: 8px; background: #3794ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #2a7bdb; }
+  </style>
+</head>
+<body>
+  <div style="font-weight: bold; margin-bottom: 15px;">Sellers.json Settings</div>
+  
+  <div class="row">
+    <label>Keys Color</label>
+    <input type="color" id="keyColor">
+  </div>
+  <div class="row">
+    <label>Strings Color</label>
+    <input type="color" id="strColor">
+  </div>
+  <div class="row">
+    <label>Numbers Color</label>
+    <input type="color" id="numColor">
+  </div>
+  <div class="row">
+    <label>Show Overview Panel</label>
+    <input type="checkbox" id="showPanel">
+  </div>
+
+  <button id="saveBtn">Save & Reload</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>
