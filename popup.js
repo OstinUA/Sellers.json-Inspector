@@ -39,6 +39,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  document.getElementById("openSellersBtn").addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      try {
+        const url = new URL(tabs[0].url);
+        const sellersUrl = url.origin + "/sellers.json";
+        chrome.tabs.create({ url: sellersUrl });
+      } catch (e) {
+        // ignore invalid URLs (e.g. chrome:// pages)
+      }
+    });
+  });
+
   document.getElementById("saveBtn").addEventListener("click", () => {
     const newConfig = {};
     for (const key in elements) {
