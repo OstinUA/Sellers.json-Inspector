@@ -16,6 +16,7 @@
   --json-key: #9cdcfe;
   --json-str: #ce9178;
   --json-num: #b5cea8;
+  --json-bool: #569cd6;
 }
 
 body.sellers-inspector-active {
@@ -31,6 +32,7 @@ body.sellers-inspector-active {
 .json-key { color: var(--json-key); font-weight: bold; }
 .json-string { color: var(--json-str); }
 .json-number { color: var(--json-num); }
+.json-boolean { color: var(--json-bool); font-weight: bold; }
 
 #sellers-overview-panel {
   position: fixed; top: 20px; right: 20px; width: 320px;
@@ -49,7 +51,6 @@ body.sellers-inspector-active {
 .overview-stat { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: var(--text2); }
 .stat-val { font-weight: 600; color: var(--text); }
 
-/* Кликабельные лейблы статистики */
 .stat-label { cursor: pointer; border-bottom: 1px dashed var(--muted); transition: color 0.2s; }
 .stat-label:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
@@ -83,7 +84,6 @@ body.sellers-inspector-active {
 .badge-ok   { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
 .badge-err  { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
 
-/* --- Тултипы --- */
 #sellers-tooltip {
   position: fixed; z-index: 10000; background: var(--surface); color: var(--text2);
   font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500;
@@ -93,7 +93,6 @@ body.sellers-inspector-active {
 }
 #sellers-tooltip.visible { opacity: 1; }
 
-/* --- Модальное окно --- */
 #sellers-modal-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(12, 14, 19, 0.85); backdrop-filter: blur(3px);

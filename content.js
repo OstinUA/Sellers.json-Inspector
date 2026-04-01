@@ -1,7 +1,8 @@
 chrome.storage.local.get({
-  keyColor: '#9cdcfe',
-  strColor: '#ce9178',
-  numColor: '#b5cea8',
+  keyColor: '#FF8C00',
+  strColor: '#7bbf8e',
+  numColor: '#F0FFF0',
+  boolColor: '#F0FFF0',
   showPanel: true,
   showTotalSellers: true,
   showUniqueSellers: true,
@@ -14,7 +15,6 @@ chrome.storage.local.get({
   initInspector(config);
 });
 
-// Хранилище объектов селлеров для модального окна
 let categorizedSellers = {
   total: [],
   unique: [],
@@ -25,7 +25,6 @@ let categorizedSellers = {
   totFnd: []
 };
 
-// Храним оригинальные метаданные сети
 let originalNetworkData = {};
 let currentModalJSON = "";
 let currentModalCategory = "";
@@ -37,13 +36,13 @@ function initInspector(config) {
   try { jsonData = JSON.parse(rawText); } 
   catch (e) { return; }
 
-  // Сохраняем корневые поля (contact_address, version и тд)
   originalNetworkData = { ...jsonData };
   delete originalNetworkData.sellers;
 
   document.documentElement.style.setProperty('--json-key', config.keyColor);
   document.documentElement.style.setProperty('--json-str', config.strColor);
   document.documentElement.style.setProperty('--json-num', config.numColor);
+  document.documentElement.style.setProperty('--json-bool', config.boolColor);
 
   document.body.innerHTML = ''; 
   document.body.classList.add('sellers-inspector-active');
@@ -76,6 +75,8 @@ function syntaxHighlight(json) {
           return `<a href="${url}" target="_blank" style="color:#4fc3f7; text-decoration:none;">${match}</a>`;
         }
       }
+    } else if (/true|false|null/.test(match)) {
+      cls = 'json-boolean';
     }
     return `<span class="${cls}">${match}</span>`;
   });
@@ -251,7 +252,6 @@ function fetchFromBackground(url) {
   });
 }
 
-// --- Инжект Модалки и Логика Тултипов ---
 function injectModalAndTooltip() {
   const tooltip = document.createElement('div');
   tooltip.id = 'sellers-tooltip';
@@ -295,14 +295,11 @@ function injectModalAndTooltip() {
     }
   });
 
-  // Логика закрытия модалки по крестику
   document.getElementById('modalCloseBtn').addEventListener('click', () => {
     document.getElementById('sellers-modal-overlay').classList.remove('visible');
   });
 
-  // Логика закрытия модалки по клику вне окна
   document.getElementById('sellers-modal-overlay').addEventListener('click', (e) => {
-    // Проверяем, что клик был именно по фону, а не по самому окну внутри
     if (e.target.id === 'sellers-modal-overlay') {
       e.target.classList.remove('visible');
     }

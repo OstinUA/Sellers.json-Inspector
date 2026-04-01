@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
     keyColor: document.getElementById("keyColor"),
     strColor: document.getElementById("strColor"),
     numColor: document.getElementById("numColor"),
+    boolColor: document.getElementById("boolColor"),
     showPanel: document.getElementById("showPanel"),
     showTotalSellers: document.getElementById("showTotalSellers"),
     showUniqueSellers: document.getElementById("showUniqueSellers"),
@@ -14,9 +15,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const defaults = {
-    keyColor: '#9cdcfe',
-    strColor: '#ce9178',
-    numColor: '#b5cea8',
+    keyColor: '#FF8C00',
+    strColor: '#7bbf8e',
+    numColor: '#F0FFF0',
+    boolColor: '#F0FFF0',
     showPanel: true,
     showTotalSellers: true,
     showUniqueSellers: true,
