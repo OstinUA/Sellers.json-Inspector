@@ -1,39 +1,79 @@
 /**
  * Sellers.json Inspector — Content Script
  *
- * Improvements over v1.0:
- *  - Class-based architecture (SellersInspector) instead of globals
- *  - Domain-level fetch caching: each domain's ads.txt / app-ads.txt fetched once
- *  - IAB-spec ads.txt line parsing (matches seller_id in the correct CSV field)
- *  - XSS protection: URL scheme validation before injecting <a> tags
- *  - Smarter tooltip positioning (no off-screen overflow)
- *  - Domain validation via URL API instead of loose regex
+ * Supports both sellers.json and buyers.json files.
+ * - sellers.json: validates seller_id against ads.txt / app-ads.txt
+ * - buyers.json: checks domain for existence of sellers.json / buyers.json
+ *
+ * Features:
+ *  - Class-based architecture (SellersInspector)
+ *  - Domain-level fetch caching
+ *  - IAB-spec ads.txt line parsing
+ *  - XSS protection: URL scheme validation
+ *  - Smarter tooltip positioning
+ *  - Domain validation via URL API
  *  - Keyboard-accessible modal (Escape to close)
  *  - Estimated time remaining in progress bar
+ *  - buyers.json / sellers.json switch navigation
  */
 
 class SellersInspector {
   constructor(config) {
     this.config = config;
 
+    // Detect file type from current URL
+    this.fileType = this.detectFileType();
+    this.isBuyers = this.fileType === 'buyers';
+    this.entityName = this.isBuyers ? 'Buyers' : 'Sellers';
+    this.entityKey = this.isBuyers ? 'buyers' : 'sellers';
+
     this.categorized = {
       total: [],
-      unique: [],
-      invalidDomain: [],
-      invAds: [],
-      invApp: [],
-      totInv: [],
-      totFnd: []
+      unique: []
     };
+
+    if (this.isBuyers) {
+      this.categorized.invSellersJson = [];
+      this.categorized.invBuyersJson = [];
+      this.categorized.validSellersJson = [];
+      this.categorized.validBuyersJson = [];
+    } else {
+      this.categorized.invalidDomain = [];
+      this.categorized.invAds = [];
+      this.categorized.invApp = [];
+      this.categorized.totInv = [];
+      this.categorized.totFnd = [];
+    }
 
     this.originalNetworkData = {};
     this.currentModalJSON = '';
     this.currentModalCategory = '';
 
-    /** @type {Map<string, {ads: string|null, app: string|null}>} */
+    /** @type {Map<string, any>} */
     this.domainCache = new Map();
 
     this.init();
+  }
+
+  // ─── File Type Detection ───────────────────────────────────────
+
+  detectFileType() {
+    const url = window.location.href.toLowerCase();
+    if (url.includes('buyers.json')) return 'buyers';
+    return 'sellers';
+  }
+
+  getSwitchUrl() {
+    const url = window.location.href;
+    if (this.fileType === 'sellers') {
+      return url.replace(/sellers\.json/i, 'buyers.json');
+    } else {
+      return url.replace(/buyers\.json/i, 'sellers.json');
+    }
+  }
+
+  getSwitchLabel() {
+    return this.fileType === 'sellers' ? 'Buyers.json' : 'Sellers.json';
   }
 
   // ─── Initialization ────────────────────────────────────────────
@@ -45,11 +85,11 @@ class SellersInspector {
     try {
       jsonData = JSON.parse(rawText);
     } catch {
-      return; // not a JSON page
+      return;
     }
 
     this.originalNetworkData = { ...jsonData };
-    delete this.originalNetworkData.sellers;
+    delete this.originalNetworkData[this.entityKey];
 
     this.applyColors();
 
@@ -77,10 +117,6 @@ class SellersInspector {
 
   // ─── Domain Validation ─────────────────────────────────────────
 
-  /**
-   * Validates a domain string more strictly than a simple regex.
-   * Returns the normalized lowercase domain or null.
-   */
   static validateDomain(raw) {
     if (!raw || typeof raw !== 'string') return null;
     const trimmed = raw.trim().toLowerCase();
@@ -88,11 +124,8 @@ class SellersInspector {
 
     try {
       const url = new URL('https://' + trimmed);
-      // hostname must match what we put in (no path injection, etc.)
       if (url.hostname !== trimmed) return null;
-      // must have at least one dot
       if (!trimmed.includes('.')) return null;
-      // reject IPs
       if (/^\d{1,3}(\.\d{1,3}){3}$/.test(trimmed)) return null;
       return trimmed;
     } catch {
@@ -102,9 +135,6 @@ class SellersInspector {
 
   // ─── Syntax Highlighting ───────────────────────────────────────
 
-  /**
-   * Safely checks if a string is a navigable URL (http/https only).
-   */
   static safeHref(str) {
     const raw = str.replace(/"/g, '');
     let url;
@@ -114,7 +144,6 @@ class SellersInspector {
       return null;
     }
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
-    // basic domain format check
     if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(url.hostname)) return null;
     return url.href;
   }
@@ -145,25 +174,33 @@ class SellersInspector {
       }
     );
 
-    // inject badge placeholders after seller_id values
-    return str.replace(
-      /(<span class="json-key">"seller_id":<\/span>\s*<span class="json-string">)"(.*?)"(<\/span>)/g,
-      (fullMatch, p1, id, p2) => {
-        const escaped = id.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-        return `${fullMatch} <span class="seller-badges" data-seller-id="${escaped}"></span>`;
-      }
-    );
+    if (this.isBuyers) {
+      // For buyers.json: inject badge placeholders after "domain" values
+      // After syntaxHighlight, domain values appear as either:
+      //   <span class="json-string">"example.com"</span>
+      //   <a href="..." ...>"example.com"</a>
+      return str.replace(
+        /(<span class="json-key">"domain":<\/span>\s*)((?:<a[^>]*>)"([^"]*)"(?:<\/a>)|<span class="json-string">"([^"]*)"<\/span>)/g,
+        (fullMatch, prefix, valueBlock, linkedDomain, plainDomain) => {
+          const domain = linkedDomain || plainDomain || '';
+          const escaped = domain.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+          return `${fullMatch} <span class="seller-badges" data-domain="${escaped}"></span>`;
+        }
+      );
+    } else {
+      // For sellers.json: inject badge placeholders after "seller_id" values
+      return str.replace(
+        /(<span class="json-key">"seller_id":<\/span>\s*<span class="json-string">")(.*?)("<\/span>)/g,
+        (fullMatch, p1, id, p3) => {
+          const escaped = id.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+          return `${fullMatch} <span class="seller-badges" data-seller-id="${escaped}"></span>`;
+        }
+      );
+    }
   }
 
   // ─── IAB ads.txt Parsing ───────────────────────────────────────
 
-  /**
-   * Parses ads.txt / app-ads.txt content per IAB spec and returns
-   * a Set of seller_id strings found.
-   *
-   * Each valid line format: <domain>, <seller_id>, <relationship>[, <cert_authority>]
-   * Lines starting with # are comments. Blank lines are skipped.
-   */
   static parseAdsTxt(text) {
     const ids = new Set();
     if (!text) return ids;
@@ -173,7 +210,6 @@ class SellersInspector {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('#')) continue;
 
-      // Remove inline comments
       const noComment = trimmed.split('#')[0].trim();
       const parts = noComment.split(',');
       if (parts.length < 3) continue;
@@ -194,10 +230,12 @@ class SellersInspector {
     panel.id = 'sellers-overview-panel';
 
     const seenDomains = new Set();
-    const sellersToAnalyze = [];
+    const entitiesToAnalyze = [];
 
-    if (data.sellers && Array.isArray(data.sellers)) {
-      for (const s of data.sellers) {
+    const entities = data[this.entityKey];
+
+    if (entities && Array.isArray(entities)) {
+      for (const s of entities) {
         this.categorized.total.push(s);
 
         const domain = SellersInspector.validateDomain(s.domain);
@@ -206,39 +244,71 @@ class SellersInspector {
             seenDomains.add(domain);
             this.categorized.unique.push(s);
           }
-          if (s.seller_id) sellersToAnalyze.push({ ...s, _normalizedDomain: domain });
-        } else {
+          entitiesToAnalyze.push({ ...s, _normalizedDomain: domain });
+        } else if (!this.isBuyers) {
           this.categorized.invalidDomain.push(s);
         }
       }
     }
 
-    let html = `<div class="overview-title">Sellers.json Overview</div>`;
+    // Switch button
+    const switchLabel = this.getSwitchLabel();
+    const switchUrl = this.getSwitchUrl();
+    const switchBtnEscaped = switchUrl.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
-    if (cfg.showTotalSellers) html += this.statRow('total', 'Total Sellers:', this.categorized.total.length, 'Total number of seller records in the file.');
-    if (cfg.showUniqueSellers) html += this.statRow('unique', 'Unique Sellers:', this.categorized.unique.length, 'First occurrence of each unique domain.');
-    if (cfg.showInvalidDomains) html += this.statRow('invalidDomain', 'Invalid domain:', this.categorized.invalidDomain.length, 'Sellers with missing or incorrectly formatted domains.');
+    let html = '';
 
     html += `
-      <button id="runAnalysisBtn" class="vbtn primary">Analyze ${sellersToAnalyze.length} Domains</button>
+      <button class="switch-file-btn" id="switchFileBtn" data-url="${switchBtnEscaped}" title="Navigate to ${switchLabel}">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <path d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/>
+        </svg>
+        Switch to ${switchLabel}
+      </button>`;
+
+    html += `<div class="overview-title">${this.entityName}.json Overview</div>`;
+
+    if (cfg.showTotalSellers) html += this.statRow('total', `Total ${this.entityName}:`, this.categorized.total.length, `Total number of ${this.entityName.toLowerCase()} records in the file.`);
+    if (cfg.showUniqueSellers) html += this.statRow('unique', `Unique ${this.entityName}:`, this.categorized.unique.length, 'First occurrence of each unique domain.');
+
+    if (!this.isBuyers && cfg.showInvalidDomains) {
+      html += this.statRow('invalidDomain', 'Invalid domain:', this.categorized.invalidDomain.length, 'Sellers with missing or incorrectly formatted domains.');
+    }
+
+    const analyzeCount = seenDomains.size;
+    html += `
+      <button id="runAnalysisBtn" class="vbtn primary">Analyze ${analyzeCount} Domains</button>
       <div id="verifyProgress">
         <div class="progress-track"><div id="verifyProgressBarInner"></div></div>
         <div class="progress-meta">
           <span id="progressText">Analyzing...</span>
-          <span id="progressCount">0 / ${sellersToAnalyze.length}</span>
+          <span id="progressCount">0 / ${analyzeCount}</span>
         </div>
       </div>
       <div id="analysis-stats-container" style="margin-top:15px;">`;
 
-    if (cfg.showInvalidAds) html += this.statRow('invAds', 'Invalid ads.txt line:', 0, 'Sellers whose ID was not found in their ads.txt file.', true);
-    if (cfg.showInvalidAppAds) html += this.statRow('invApp', 'Invalid app-ads.txt line:', 0, 'Sellers whose ID was not found in their app-ads.txt file.', true);
-    if (cfg.showTotalInvalid) html += this.statRow('totInv', 'Total invalid Sellers:', 0, 'Sellers whose ID was missing from BOTH ads.txt and app-ads.txt.', true);
-    if (cfg.showTotalFound) html += this.statRow('totFnd', 'Total found Sellers:', 0, 'Sellers whose ID was found in AT LEAST ONE of the files.', true);
+    if (this.isBuyers) {
+      html += this.statRow('invSellersJson', 'Invalid sellers.json:', 0, 'Domains that do not have a sellers.json file.', true);
+      html += this.statRow('invBuyersJson', 'Invalid buyers.json:', 0, 'Domains that do not have a buyers.json file.', true);
+      html += this.statRow('validSellersJson', 'Valid sellers.json:', 0, 'Domains that have a sellers.json file.', true);
+      html += this.statRow('validBuyersJson', 'Valid buyers.json:', 0, 'Domains that have a buyers.json file.', true);
+    } else {
+      if (cfg.showInvalidAds) html += this.statRow('invAds', 'Invalid ads.txt line:', 0, 'Sellers whose ID was not found in their ads.txt file.', true);
+      if (cfg.showInvalidAppAds) html += this.statRow('invApp', 'Invalid app-ads.txt line:', 0, 'Sellers whose ID was not found in their app-ads.txt file.', true);
+      if (cfg.showTotalInvalid) html += this.statRow('totInv', 'Total invalid Sellers:', 0, 'Sellers whose ID was missing from BOTH ads.txt and app-ads.txt.', true);
+      if (cfg.showTotalFound) html += this.statRow('totFnd', 'Total found Sellers:', 0, 'Sellers whose ID was found in AT LEAST ONE of the files.', true);
+    }
 
     html += `</div>`;
 
     panel.innerHTML = html;
     document.body.appendChild(panel);
+
+    // Switch button handler
+    document.getElementById('switchFileBtn').addEventListener('click', () => {
+      const url = document.getElementById('switchFileBtn').getAttribute('data-url');
+      window.location.href = url;
+    });
 
     const btn = document.getElementById('runAnalysisBtn');
     btn.addEventListener('click', () => {
@@ -246,10 +316,20 @@ class SellersInspector {
       btn.innerText = 'Analysis in progress...';
       document.getElementById('verifyProgress').classList.add('visible');
 
-      this.startAnalysis(sellersToAnalyze, () => {
-        btn.innerText = 'Analysis Complete!';
-        document.getElementById('progressText').innerText = 'Done!';
-      });
+      if (this.isBuyers) {
+        const uniqueDomains = [...seenDomains];
+        this.startBuyersAnalysis(uniqueDomains, entitiesToAnalyze, () => {
+          btn.innerText = 'Analysis Complete!';
+          document.getElementById('progressText').innerText = 'Done!';
+        });
+      } else {
+        // Filter to only entries with seller_id for sellers.json analysis
+        const withId = entitiesToAnalyze.filter(s => s.seller_id);
+        this.startSellersAnalysis(withId, () => {
+          btn.innerText = 'Analysis Complete!';
+          document.getElementById('progressText').innerText = 'Done!';
+        });
+      }
     }, { once: true });
   }
 
@@ -264,12 +344,22 @@ class SellersInspector {
   }
 
   updateStatsUI() {
-    const updates = [
-      { id: 'invAds', val: this.categorized.invAds.length },
-      { id: 'invApp', val: this.categorized.invApp.length },
-      { id: 'totInv', val: this.categorized.totInv.length },
-      { id: 'totFnd', val: this.categorized.totFnd.length }
-    ];
+    let updates;
+    if (this.isBuyers) {
+      updates = [
+        { id: 'invSellersJson', val: this.categorized.invSellersJson.length },
+        { id: 'invBuyersJson', val: this.categorized.invBuyersJson.length },
+        { id: 'validSellersJson', val: this.categorized.validSellersJson.length },
+        { id: 'validBuyersJson', val: this.categorized.validBuyersJson.length }
+      ];
+    } else {
+      updates = [
+        { id: 'invAds', val: this.categorized.invAds.length },
+        { id: 'invApp', val: this.categorized.invApp.length },
+        { id: 'totInv', val: this.categorized.totInv.length },
+        { id: 'totFnd', val: this.categorized.totFnd.length }
+      ];
+    }
 
     for (const { id, val } of updates) {
       const row = document.getElementById(`row-${id}`);
@@ -281,13 +371,9 @@ class SellersInspector {
     }
   }
 
-  // ─── Analysis Queue ────────────────────────────────────────────
+  // ─── Sellers.json Analysis Queue ───────────────────────────────
 
-  /**
-   * Fetches ads.txt / app-ads.txt for a domain, caching per-domain.
-   * Returns { adsIds: Set, appIds: Set }
-   */
-  async fetchDomainFiles(domain) {
+  async fetchDomainAdsTxt(domain) {
     if (this.domainCache.has(domain)) {
       return this.domainCache.get(domain);
     }
@@ -314,7 +400,7 @@ class SellersInspector {
     });
   }
 
-  async startAnalysis(sellers, onComplete) {
+  async startSellersAnalysis(sellers, onComplete) {
     const CONCURRENCY = 10;
     let idx = 0;
     let completed = 0;
@@ -331,7 +417,6 @@ class SellersInspector {
       bar.style.width = `${pct}%`;
       countEl.innerText = `${completed} / ${total}`;
 
-      // ETA calculation
       if (completed > 0) {
         const elapsed = Date.now() - startTime;
         const remaining = Math.round((elapsed / completed) * (total - completed) / 1000);
@@ -375,7 +460,7 @@ class SellersInspector {
     }
 
     const domain = seller._normalizedDomain || seller.domain;
-    const { adsIds, appIds } = await this.fetchDomainFiles(domain);
+    const { adsIds, appIds } = await this.fetchDomainAdsTxt(domain);
 
     const hasAds = adsIds.has(seller.seller_id);
     const hasApp = appIds.has(seller.seller_id);
@@ -394,20 +479,129 @@ class SellersInspector {
     }
   }
 
+  // ─── Buyers.json Analysis Queue ────────────────────────────────
+
+  async startBuyersAnalysis(uniqueDomains, allEntries, onComplete) {
+    const CONCURRENCY = 10;
+    let idx = 0;
+    let completed = 0;
+    let active = 0;
+    const total = uniqueDomains.length;
+    const startTime = Date.now();
+
+    // Build a map: domain -> first entry (representative for categorization)
+    const domainEntryMap = new Map();
+    for (const entry of allEntries) {
+      if (!domainEntryMap.has(entry._normalizedDomain)) {
+        domainEntryMap.set(entry._normalizedDomain, entry);
+      }
+    }
+
+    const bar = document.getElementById('verifyProgressBarInner');
+    const countEl = document.getElementById('progressCount');
+    const textEl = document.getElementById('progressText');
+
+    const updateProgress = () => {
+      const pct = (completed / total) * 100;
+      bar.style.width = `${pct}%`;
+      countEl.innerText = `${completed} / ${total}`;
+
+      if (completed > 0) {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.round((elapsed / completed) * (total - completed) / 1000);
+        if (remaining > 0) {
+          textEl.innerText = `~${remaining}s remaining`;
+        } else {
+          textEl.innerText = 'Finishing...';
+        }
+      }
+    };
+
+    return new Promise(resolve => {
+      const runNext = () => {
+        if (completed >= total) {
+          onComplete();
+          resolve();
+          return;
+        }
+        while (active < CONCURRENCY && idx < total) {
+          const domain = uniqueDomains[idx++];
+          active++;
+
+          this.checkBuyerDomain(domain, domainEntryMap).then(() => {
+            completed++;
+            active--;
+            updateProgress();
+            runNext();
+          });
+        }
+      };
+      runNext();
+    });
+  }
+
+  async checkBuyerDomain(domain, domainEntryMap) {
+    const safeDomain = CSS.escape(domain);
+    const badges = document.querySelectorAll(`.seller-badges[data-domain="${safeDomain}"]`);
+    for (const b of badges) {
+      b.innerHTML = '<span class="badge badge-wait">Checking...</span>';
+    }
+
+    const [hasSellers, hasBuyers] = await Promise.all([
+      this.fetchJsonExists(`https://${domain}/sellers.json`),
+      this.fetchJsonExists(`https://${domain}/buyers.json`)
+    ]);
+
+    // Categorize immediately for real-time stats
+    const entry = domainEntryMap.get(domain);
+    if (entry) {
+      if (hasSellers) {
+        this.categorized.validSellersJson.push(entry);
+      } else {
+        this.categorized.invSellersJson.push(entry);
+      }
+
+      if (hasBuyers) {
+        this.categorized.validBuyersJson.push(entry);
+      } else {
+        this.categorized.invBuyersJson.push(entry);
+      }
+
+      this.updateStatsUI();
+    }
+
+    // Update badges
+    for (const b of badges) {
+      b.innerHTML =
+        (hasSellers ? '<span class="badge badge-ok">Sellers: OK</span>' : '<span class="badge badge-err">Sellers: NO</span>') +
+        (hasBuyers ? '<span class="badge badge-ok">Buyers: OK</span>' : '<span class="badge badge-err">Buyers: NO</span>');
+    }
+  }
+
+  async fetchJsonExists(url) {
+    const text = await this.fetchFromBackground(url);
+    if (!text) return false;
+
+    try {
+      const parsed = JSON.parse(text);
+      return typeof parsed === 'object' && parsed !== null;
+    } catch {
+      return false;
+    }
+  }
+
   // ─── Modal & Tooltip ───────────────────────────────────────────
 
   injectModalAndTooltip() {
-    // Tooltip
     const tooltip = document.createElement('div');
     tooltip.id = 'sellers-tooltip';
     document.body.appendChild(tooltip);
 
-    // Modal
     document.body.insertAdjacentHTML('beforeend', `
       <div id="sellers-modal-overlay">
         <div id="sellers-modal">
           <div class="modal-header">
-            <span class="modal-title" id="modal-title-text">Filtered Sellers</span>
+            <span class="modal-title" id="modal-title-text">Filtered ${this.entityName}</span>
             <span class="modal-close" id="modalCloseBtn">&times;</span>
           </div>
           <div class="modal-body">
@@ -420,7 +614,6 @@ class SellersInspector {
         </div>
       </div>`);
 
-    // Tooltip follow with safe positioning
     document.addEventListener('mousemove', e => {
       if (e.target.matches('.stat-label[data-tip]')) {
         tooltip.innerText = e.target.getAttribute('data-tip');
@@ -431,11 +624,9 @@ class SellersInspector {
         let left = e.clientX + pad;
         let top = e.clientY - 10;
 
-        // prevent overflow right
         if (left + tipW > window.innerWidth) {
           left = e.clientX - tipW - pad;
         }
-        // prevent overflow top
         if (top < 0) top = pad;
 
         tooltip.style.left = left + 'px';
@@ -445,7 +636,6 @@ class SellersInspector {
       }
     });
 
-    // Stat label click -> modal
     document.addEventListener('click', e => {
       if (e.target.matches('.stat-label[data-category]')) {
         const category = e.target.getAttribute('data-category');
@@ -454,7 +644,6 @@ class SellersInspector {
       }
     });
 
-    // Close modal
     const overlay = document.getElementById('sellers-modal-overlay');
 
     document.getElementById('modalCloseBtn').addEventListener('click', () => {
@@ -465,14 +654,12 @@ class SellersInspector {
       if (e.target === overlay) overlay.classList.remove('visible');
     });
 
-    // Escape key closes modal
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && overlay.classList.contains('visible')) {
         overlay.classList.remove('visible');
       }
     });
 
-    // Copy
     document.getElementById('modalCopyBtn').addEventListener('click', () => {
       navigator.clipboard.writeText(this.currentModalJSON).then(() => {
         const btn = document.getElementById('modalCopyBtn');
@@ -481,13 +668,12 @@ class SellersInspector {
       });
     });
 
-    // Save
     document.getElementById('modalSaveBtn').addEventListener('click', () => {
       const blob = new Blob([this.currentModalJSON], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sellers_filtered_${this.currentModalCategory}.json`;
+      a.download = `${this.entityKey}_filtered_${this.currentModalCategory}.json`;
       a.click();
       URL.revokeObjectURL(url);
     });
@@ -496,9 +682,8 @@ class SellersInspector {
   openModal(category, labelName) {
     this.currentModalCategory = category;
 
-    const sellers = this.categorized[category] || [];
-    // Strip internal _normalizedDomain before export
-    const cleanSellers = sellers.map(s => {
+    const entries = this.categorized[category] || [];
+    const cleanEntries = entries.map(s => {
       const copy = { ...s };
       delete copy._normalizedDomain;
       return copy;
@@ -506,13 +691,13 @@ class SellersInspector {
 
     const exportData = {
       ...this.originalNetworkData,
-      sellers: cleanSellers
+      [this.entityKey]: cleanEntries
     };
 
     this.currentModalJSON = JSON.stringify(exportData, null, 2);
 
     document.getElementById('modal-title-text').innerText =
-      `${labelName} (${cleanSellers.length} records)`;
+      `${labelName} (${cleanEntries.length} records)`;
     document.getElementById('modal-json-content').innerText = this.currentModalJSON;
     document.getElementById('sellers-modal-overlay').classList.add('visible');
   }

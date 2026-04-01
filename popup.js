@@ -51,6 +51,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  document.getElementById("openBuyersBtn").addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      try {
+        const url = new URL(tabs[0].url);
+        const buyersUrl = url.origin + "/buyers.json";
+        chrome.tabs.create({ url: buyersUrl });
+      } catch (e) {
+        // ignore invalid URLs (e.g. chrome:// pages)
+      }
+    });
+  });
+
   document.getElementById("saveBtn").addEventListener("click", () => {
     const newConfig = {};
     for (const key in elements) {
