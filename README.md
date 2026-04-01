@@ -1,6 +1,6 @@
-# Sellers.json Inspector
+<a href="https://github.com/OstinUA" target="_blank" rel="noopener"><img src="https://raw.githubusercontent.com/OstinUA/Image-storage/main/readme/Sellers.json-Inspector.png" valign="middle" alt="Sellers.json Inspector"></a>
 
-A Chrome Extension that parses, visualizes, and validates `sellers.json` inventory metadata with a fast, in-page inspection and verification workflow.
+> A Chrome Extension that parses, visualizes, and validates `sellers.json` inventory metadata with a fast, in-page inspection and verification workflow.
 
 [![Version](https://img.shields.io/badge/version-1.2.0-2ea44f?style=for-the-badge)](manifest.json)
 [![Manifest](https://img.shields.io/badge/manifest-v3-1f6feb?style=for-the-badge)](manifest.json)
