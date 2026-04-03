@@ -76,7 +76,8 @@ Sellers.json-Inspector/
 ├── background.js      # Service worker, cross-origin fetch relay with timeout
 ├── content.js         # Main inspection UI logic, parsing, analytics, modal workflow
 ├── content.css        # Visual system, panel/badge/modal/tooltip styles
-├── popup.html         # Extension settings UI
+├── index.html         # Extension settings UI root entry
+├── popup.css          # Popup styles extracted from inline markup
 ├── popup.js           # Settings persistence and page reload action
 ├── manifest.json      # Extension metadata, permissions, and script wiring
 ├── icons/
