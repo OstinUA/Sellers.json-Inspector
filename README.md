@@ -2,7 +2,7 @@
 
 > A Chrome Extension that parses, visualizes, and validates `sellers.json` inventory metadata with a fast, in-page inspection and verification workflow.
 
-[![Version](https://img.shields.io/badge/version-1.2.0-2ea44f?style=for-the-badge)](manifest.json)
+[![Version](https://img.shields.io/badge/version-1.2.3-2ea44f?style=for-the-badge)](manifest.json)
 [![Manifest](https://img.shields.io/badge/manifest-v3-1f6feb?style=for-the-badge)](manifest.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Status](https://img.shields.io/badge/status-stable-6f42c1?style=for-the-badge)](#features)

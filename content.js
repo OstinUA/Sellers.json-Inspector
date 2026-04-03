@@ -6,15 +6,15 @@
  * - buyers.json: checks domain for existence of sellers.json / buyers.json
  *
  * Features:
- *  - Class-based architecture (SellersInspector)
- *  - Domain-level fetch caching
- *  - IAB-spec ads.txt line parsing
- *  - XSS protection: URL scheme validation
- *  - Smarter tooltip positioning
- *  - Domain validation via URL API
- *  - Keyboard-accessible modal (Escape to close)
- *  - Estimated time remaining in progress bar
- *  - buyers.json / sellers.json switch navigation
+ * - Class-based architecture (SellersInspector)
+ * - Domain-level fetch caching
+ * - IAB-spec ads.txt line parsing
+ * - XSS protection: URL scheme validation
+ * - Smarter tooltip positioning
+ * - Domain validation via URL API
+ * - Keyboard-accessible modal (Escape to close)
+ * - Estimated time remaining in progress bar
+ * - buyers.json / sellers.json switch navigation
  */
 
 class SellersInspector {
@@ -175,10 +175,6 @@ class SellersInspector {
     );
 
     if (this.isBuyers) {
-      // For buyers.json: inject badge placeholders after "domain" values
-      // After syntaxHighlight, domain values appear as either:
-      //   <span class="json-string">"example.com"</span>
-      //   <a href="..." ...>"example.com"</a>
       return str.replace(
         /(<span class="json-key">"domain":<\/span>\s*)((?:<a[^>]*>)"([^"]*)"(?:<\/a>)|<span class="json-string">"([^"]*)"<\/span>)/g,
         (fullMatch, prefix, valueBlock, linkedDomain, plainDomain) => {
@@ -188,7 +184,6 @@ class SellersInspector {
         }
       );
     } else {
-      // For sellers.json: inject badge placeholders after "seller_id" values
       return str.replace(
         /(<span class="json-key">"seller_id":<\/span>\s*<span class="json-string">")(.*?)("<\/span>)/g,
         (fullMatch, p1, id, p3) => {
@@ -251,7 +246,6 @@ class SellersInspector {
       }
     }
 
-    // Switch button
     const switchLabel = this.getSwitchLabel();
     const switchUrl = this.getSwitchUrl();
     const switchBtnEscaped = switchUrl.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
@@ -268,6 +262,22 @@ class SellersInspector {
 
     html += `<div class="overview-title">${this.entityName}.json Overview</div>`;
 
+    if (cfg.showDomainList || cfg.showNameList) {
+      html += `<div class="overview-stat" style="justify-content: flex-start; gap: 10px; margin-bottom: 12px;">`;
+      if (cfg.showDomainList) {
+        html += `<span class="stat-label" data-category="domainList" data-tip="List of all unique domains">Domain</span>`;
+      }
+
+      if (cfg.showDomainList && cfg.showNameList) {
+        html += `<span style="color: #5a6480; font-weight: 700; font-size: 11px; user-select: none;">|</span>`;
+      }
+      
+      if (cfg.showNameList) {
+        html += `<span class="stat-label" data-category="nameList" data-tip="List of all unique names">Name</span>`;
+      }
+      html += `</div>`;
+    }
+    
     if (cfg.showTotalSellers) html += this.statRow('total', `Total ${this.entityName}:`, this.categorized.total.length, `Total number of ${this.entityName.toLowerCase()} records in the file.`);
     if (cfg.showUniqueSellers) html += this.statRow('unique', `Unique ${this.entityName}:`, this.categorized.unique.length, 'First occurrence of each unique domain.');
 
@@ -304,7 +314,6 @@ class SellersInspector {
     panel.innerHTML = html;
     document.body.appendChild(panel);
 
-    // Switch button handler
     document.getElementById('switchFileBtn').addEventListener('click', () => {
       const url = document.getElementById('switchFileBtn').getAttribute('data-url');
       window.location.href = url;
@@ -323,7 +332,6 @@ class SellersInspector {
           document.getElementById('progressText').innerText = 'Done!';
         });
       } else {
-        // Filter to only entries with seller_id for sellers.json analysis
         const withId = entitiesToAnalyze.filter(s => s.seller_id);
         this.startSellersAnalysis(withId, () => {
           btn.innerText = 'Analysis Complete!';
@@ -489,7 +497,6 @@ class SellersInspector {
     const total = uniqueDomains.length;
     const startTime = Date.now();
 
-    // Build a map: domain -> first entry (representative for categorization)
     const domainEntryMap = new Map();
     for (const entry of allEntries) {
       if (!domainEntryMap.has(entry._normalizedDomain)) {
@@ -552,7 +559,6 @@ class SellersInspector {
       this.fetchJsonExists(`https://${domain}/buyers.json`)
     ]);
 
-    // Categorize immediately for real-time stats
     const entry = domainEntryMap.get(domain);
     if (entry) {
       if (hasSellers) {
@@ -570,7 +576,6 @@ class SellersInspector {
       this.updateStatsUI();
     }
 
-    // Update badges
     for (const b of badges) {
       b.innerHTML =
         (hasSellers ? '<span class="badge badge-ok">Sellers: OK</span>' : '<span class="badge badge-err">Sellers: NO</span>') +
@@ -669,11 +674,13 @@ class SellersInspector {
     });
 
     document.getElementById('modalSaveBtn').addEventListener('click', () => {
-      const blob = new Blob([this.currentModalJSON], { type: 'application/json' });
+      const isText = this.currentModalCategory === 'domainList' || this.currentModalCategory === 'nameList';
+      const fileName = this.currentModalCategory === 'domainList' ? 'domains.txt' : 'names.txt';
+      const blob = new Blob([this.currentModalJSON], { type: isText ? 'text/plain' : 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${this.entityKey}_filtered_${this.currentModalCategory}.json`;
+      a.download = `${this.entityKey}_${isText ? fileName : `filtered_${this.currentModalCategory}.json`}`;
       a.click();
       URL.revokeObjectURL(url);
     });
@@ -681,6 +688,29 @@ class SellersInspector {
 
   openModal(category, labelName) {
     this.currentModalCategory = category;
+
+    if (category === 'domainList' || category === 'nameList') {
+      const isDomain = category === 'domainList';
+      const itemsSet = new Set();
+      
+      this.categorized.total.forEach(s => {
+        const val = isDomain ? s.domain : s.name;
+        if (val && typeof val === 'string') {
+          itemsSet.add(val.trim());
+        }
+      });
+      
+      const itemsArray = Array.from(itemsSet);
+      this.currentModalJSON = itemsArray.join('\n');
+
+      document.getElementById('modal-title-text').innerText = `${isDomain ? 'Domains' : 'Names'} (${itemsArray.length})`;
+      document.getElementById('modal-json-content').innerText = this.currentModalJSON;
+      document.getElementById('modalSaveBtn').innerText = 'Save .txt';
+      document.getElementById('sellers-modal-overlay').classList.add('visible');
+      return;
+    }
+
+    document.getElementById('modalSaveBtn').innerText = 'Save .json';
 
     const entries = this.categorized[category] || [];
     const cleanEntries = entries.map(s => {
@@ -712,6 +742,8 @@ chrome.storage.local.get(
     numColor: '#F0FFF0',
     boolColor: '#F0FFF0',
     showPanel: true,
+    showDomainList: true,
+    showNameList: true,
     showTotalSellers: true,
     showUniqueSellers: true,
     showInvalidDomains: true,
