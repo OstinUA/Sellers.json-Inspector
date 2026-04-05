@@ -73,15 +73,16 @@
 
 ```text
 Sellers.json-Inspector/
-├── background.js      # Service worker, cross-origin fetch relay with timeout
-├── content.js         # Main inspection UI logic, parsing, analytics, modal workflow
-├── content.css        # Visual system, panel/badge/modal/tooltip styles
-├── index.html         # Extension settings UI root entry
-├── popup.css          # Popup styles extracted from inline markup
-├── popup.js           # Settings persistence and page reload action
-├── manifest.json      # Extension metadata, permissions, and script wiring
-├── icons/
-│   └── icon128.png
+├── background.js      # Service worker: URL validation, caching, fetch relay with timeout
+├── content.js         # Core logic: Parsing, IAB spec validation queue, rendering, modal UI
+├── content.css        # Visual system: Syntax highlighting, panel, badges, tooltips
+├── index.html         # Extension popup settings UI root
+├── popup.css          # Popup styling
+├── popup.js           # Settings persistence, quick links, and page reload handling
+├── manifest.json      # Extension metadata, MV3 permissions
+├── trigger action/    # Python script for AI-driven PR/Commit analysis
+├── .github/           # Comprehensive CI/CD workflows, issue templates, dependabot
+├── icons/             # Extension icon assets
 └── LICENSE
 ```
 
