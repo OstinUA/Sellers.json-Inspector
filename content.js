@@ -18,14 +18,9 @@ class SellersInspector {
     this.currentListType = '';
 
     this.virtual = {
-      lineHeight: 22,
-      overscan: 40,
       allLines: [],
       highlightedLines: [],
       filteredIndexes: [],
-      viewport: null,
-      spacerTop: null,
-      spacerBottom: null,
       content: null
     };
 
@@ -71,14 +66,18 @@ class SellersInspector {
 
   applyColors() {
     const root = document.documentElement.style;
-    root.setProperty('--json-key', this.config.keyColor);
-    root.setProperty('--json-str', this.config.strColor);
-    root.setProperty('--json-num', this.config.numColor);
-    root.setProperty('--json-bool', this.config.boolColor);
-  }
+    const dark = this.config.darkThemeColors || {};
+    const light = this.config.lightThemeColors || {};
 
-  applyTheme() {
-    document.body.classList.toggle('theme-light', this.config.theme === 'light');
+    if (dark.keyColor) root.setProperty('--dark-key', dark.keyColor);
+    if (dark.strColor) root.setProperty('--dark-str', dark.strColor);
+    if (dark.numColor) root.setProperty('--dark-num', dark.numColor);
+    if (dark.boolColor) root.setProperty('--dark-bool', dark.boolColor);
+
+    if (light.keyColor) root.setProperty('--light-key', light.keyColor);
+    if (light.strColor) root.setProperty('--light-str', light.strColor);
+    if (light.numColor) root.setProperty('--light-num', light.numColor);
+    if (light.boolColor) root.setProperty('--light-bool', light.boolColor);
   }
 
   async init() {
@@ -93,12 +92,11 @@ class SellersInspector {
     delete this.originalNetworkData[this.entityKey];
 
     this.applyColors();
-    this.applyTheme();
     document.body.innerHTML = '';
     document.body.classList.add('sellers-inspector-active');
 
     this.prepareStaticStats(payload);
-    await this.renderVirtualizedJson(payload);
+    await this.renderJson(payload);
 
     if (this.config.showPanel) {
       this.buildOverviewPanel(payload);
@@ -118,20 +116,12 @@ class SellersInspector {
     }
   }
 
-  async renderVirtualizedJson(jsonData) {
+  async renderJson(jsonData) {
     const container = document.createElement('div');
     container.className = 'json-container';
-    container.innerHTML = `
-      <div id="json-viewport" class="json-virtual-viewport">
-        <div class="json-virtual-spacer" id="jsonSpacerTop"></div>
-        <div id="jsonVirtualContent"></div>
-        <div class="json-virtual-spacer" id="jsonSpacerBottom"></div>
-      </div>`;
+    container.innerHTML = `<div id="json-viewport" class="json-virtual-viewport"><div id="jsonVirtualContent"></div></div>`;
     document.body.appendChild(container);
 
-    this.virtual.viewport = container.querySelector('#json-viewport');
-    this.virtual.spacerTop = container.querySelector('#jsonSpacerTop');
-    this.virtual.spacerBottom = container.querySelector('#jsonSpacerBottom');
     this.virtual.content = container.querySelector('#jsonVirtualContent');
 
     const highlighted = await this.highlightInWorker({
@@ -144,10 +134,7 @@ class SellersInspector {
     this.virtual.highlightedLines = highlighted.split('\n');
     this.virtual.filteredIndexes = this.virtual.highlightedLines.map((_, index) => index);
 
-    this.virtual.viewport.addEventListener('scroll', () => this.renderVisibleLines());
-    window.addEventListener('resize', () => this.renderVisibleLines());
-
-    this.renderVisibleLines();
+    this.renderFilteredLines();
   }
 
   highlightInWorker(payload) {
@@ -162,25 +149,12 @@ class SellersInspector {
     });
   }
 
-  renderVisibleLines() {
-    const viewport = this.virtual.viewport;
-    if (!viewport) return;
-
-    const total = this.virtual.filteredIndexes.length;
-    const viewportHeight = viewport.clientHeight || window.innerHeight;
-    const scrollTop = viewport.scrollTop;
-
-    const start = Math.max(0, Math.floor(scrollTop / this.virtual.lineHeight) - this.virtual.overscan);
-    const visibleCount = Math.ceil(viewportHeight / this.virtual.lineHeight) + this.virtual.overscan * 2;
-    const end = Math.min(total, start + visibleCount);
-
-    this.virtual.spacerTop.style.height = `${start * this.virtual.lineHeight}px`;
-    this.virtual.spacerBottom.style.height = `${Math.max(0, (total - end) * this.virtual.lineHeight)}px`;
+  renderFilteredLines() {
+    if (!this.virtual.content) return;
 
     let html = '';
-    for (let i = start; i < end; i += 1) {
-      const realIndex = this.virtual.filteredIndexes[i];
-      html += `<div class="json-line" data-line="${realIndex}">${this.virtual.highlightedLines[realIndex] || ''}</div>`;
+    for (const i of this.virtual.filteredIndexes) {
+      html += `<div class="json-line" data-line="${i}">${this.virtual.highlightedLines[i] || ''}</div>`;
     }
 
     this.virtual.content.innerHTML = html;
@@ -190,7 +164,7 @@ class SellersInspector {
     const normalized = String(query || '').trim().toLowerCase();
     if (!normalized) {
       this.virtual.filteredIndexes = this.virtual.highlightedLines.map((_, index) => index);
-      this.renderVisibleLines();
+      this.renderFilteredLines();
       return;
     }
 
@@ -205,7 +179,7 @@ class SellersInspector {
 
     const deduplicated = [...new Set(matchedIndexes.filter(index => index >= 0 && index < this.virtual.highlightedLines.length))];
     this.virtual.filteredIndexes = deduplicated.sort((a, b) => a - b);
-    this.renderVisibleLines();
+    this.renderFilteredLines();
   }
 
   buildOverviewPanel(data) {

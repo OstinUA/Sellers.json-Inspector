@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sellers.json Inspector",
-  "version": "1.3.0",
+  "version": "1.3.2",
   "description": "Parsing, highlighting, and analysis of sellers.json and buyers.json files with IAB-spec ads.txt validation.",
   "permissions": [
     "storage"

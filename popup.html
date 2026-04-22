@@ -2,7 +2,6 @@
 <html>
 <head>
     <link rel="stylesheet" href="popup.css">
-
 </head>
 <body>
 
@@ -25,26 +24,32 @@
       </button>
     </div>
 
-    <div class="card">
-      <div class="card-label">Syntax Colors</div>
-      <div class="color-grid">
-        <label class="color-item">
-          <div class="color-swatch"><input type="color" id="keyColor"></div>
-          <span class="color-name">Keys</span>
-        </label>
-        <label class="color-item">
-          <div class="color-swatch"><input type="color" id="strColor"></div>
-          <span class="color-name">Strings</span>
-        </label>
-        <label class="color-item">
-          <div class="color-swatch"><input type="color" id="numColor"></div>
-          <span class="color-name">Numbers</span>
-        </label>
-        <label class="color-item">
-          <div class="color-swatch"><input type="color" id="boolColor"></div>
-          <span class="color-name">Booleans</span>
-        </label>
-      </div>
+    <div class="card card-collapsible">
+      <details class="syntax-details">
+        <summary class="card-label syntax-summary">Syntax Colors</summary>
+        <div class="syntax-content">
+          <div class="syntax-content-inner">
+            <div class="color-grid">
+              <label class="color-item">
+                <div class="color-swatch"><input type="color" id="keyColor"></div>
+                <span class="color-name">Keys</span>
+              </label>
+              <label class="color-item">
+                <div class="color-swatch"><input type="color" id="strColor"></div>
+                <span class="color-name">Strings</span>
+              </label>
+              <label class="color-item">
+                <div class="color-swatch"><input type="color" id="numColor"></div>
+                <span class="color-name">Numbers</span>
+              </label>
+              <label class="color-item">
+                <div class="color-swatch"><input type="color" id="boolColor"></div>
+                <span class="color-name">Booleans</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="card">
@@ -53,10 +58,6 @@
         <div class="toggle-row">
           <label class="toggle-label" for="showPanel">Overview Panel</label>
           <label class="switch"><input type="checkbox" id="showPanel"><span class="switch-track"></span></label>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-label" for="themeToggle">Light Theme</label>
-          <label class="switch"><input type="checkbox" id="themeToggle"><span class="switch-track"></span></label>
         </div>
       </div>
 
