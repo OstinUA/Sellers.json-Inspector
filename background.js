@@ -1,12 +1,11 @@
 /**
  * Sellers.json Inspector — Background Service Worker
- * 
- * Handles cross-origin fetch requests from the content script.
+ * * Handles cross-origin fetch requests from the content script.
  * Features:
- *  - URL scheme validation (only https allowed)
- *  - Domain-level response caching to avoid duplicate fetches
- *  - Configurable timeout with AbortController
- *  - Path whitelist: only allowed paths are permitted
+ * - URL scheme validation (only https allowed)
+ * - Domain-level response caching to avoid duplicate fetches
+ * - Configurable timeout with AbortController
+ * - Path whitelist: only allowed paths are permitted
  */
 
 const FETCH_TIMEOUT_MS = 8000;
@@ -99,6 +98,68 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ text: null, success: false, error: err.message });
       });
 
+    return true; // async response
+  }
+
+  // ОБРАБОТКА ПОДСВЕТКИ СИНТАКСИСА
+  if (request.action === 'highlight') {
+    setTimeout(() => {
+      try {
+        const { json, isBuyers, confidentialSellerIds } = request.payload;
+        let str = JSON.stringify(json, null, 2);
+
+        str = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        str = str.replace(
+          /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+          match => {
+            let cls = 'json-number';
+            if (/^"/.test(match)) {
+              if (/:$/.test(match)) {
+                cls = 'json-key';
+              } else {
+                cls = 'json-string';
+                const raw = match.replace(/"/g, '');
+                try {
+                  const url = raw.startsWith('http') ? new URL(raw) : new URL('https://' + raw);
+                  if ((url.protocol === 'http:' || url.protocol === 'https:') && /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(url.hostname)) {
+                    const escaped = url.href.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+                    return `<a href="${escaped}" target="_blank" rel="noopener noreferrer" style="color:#5a9fd4;text-decoration:none;">${match}</a>`;
+                  }
+                } catch {}
+              }
+            } else if (/true|false|null/.test(match)) {
+              cls = 'json-boolean';
+            }
+            return `<span class="${cls}">${match}</span>`;
+          }
+        );
+
+        if (isBuyers) {
+          str = str.replace(
+            /(<span class="json-key">"domain":<\/span>\s*)((?:<a[^>]*>)"([^"]*)"(?:<\/a>)|<span class="json-string">"([^"]*)"<\/span>)/g,
+            (fullMatch, _prefix, _value, linkedDomain, plainDomain) => {
+              const domain = (linkedDomain || plainDomain || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+              return `${fullMatch} <span class="seller-badges" data-domain="${domain}"></span>`;
+            }
+          );
+        } else {
+          const confidentialSet = new Set((confidentialSellerIds || []).map(String));
+          str = str.replace(
+            /(<span class="json-key">"seller_id":<\/span>\s*<span class="json-string">")(.+?)("<\/span>)/g,
+            (fullMatch, p1, id, p3) => {
+              const escapedId = id.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+              const confidentialBadge = confidentialSet.has(id) ? '<span class="badge badge-confidential">CONFIDENTIAL</span>' : '';
+              return `${p1}${id}${p3} <span class="seller-badges" data-seller-id="${escapedId}">${confidentialBadge}</span>`;
+            }
+          );
+        }
+
+        sendResponse({ html: str });
+      } catch (err) {
+        sendResponse({ error: err.message });
+      }
+    }, 0);
+    
     return true; // async response
   }
 

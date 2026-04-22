@@ -1,81 +1,69 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
+  const defaults = window.SELLERS_INSPECTOR_DEFAULTS || {};
+
   const elements = {
-    keyColor: document.getElementById("keyColor"),
-    strColor: document.getElementById("strColor"),
-    numColor: document.getElementById("numColor"),
-    boolColor: document.getElementById("boolColor"),
-    showPanel: document.getElementById("showPanel"),
-    showDomainList: document.getElementById("showDomainList"),
-    showNameList: document.getElementById("showNameList"),
-    showTotalSellers: document.getElementById("showTotalSellers"),
-    showUniqueSellers: document.getElementById("showUniqueSellers"),
-    showInvalidDomains: document.getElementById("showInvalidDomains"),
-    showInvalidAds: document.getElementById("showInvalidAds"),
-    showInvalidAppAds: document.getElementById("showInvalidAppAds"),
-    showTotalInvalid: document.getElementById("showTotalInvalid"),
-    showTotalFound: document.getElementById("showTotalFound")
+    keyColor: document.getElementById('keyColor'),
+    strColor: document.getElementById('strColor'),
+    numColor: document.getElementById('numColor'),
+    boolColor: document.getElementById('boolColor'),
+    showPanel: document.getElementById('showPanel'),
+    showDomainList: document.getElementById('showDomainList'),
+    showNameList: document.getElementById('showNameList'),
+    showTotalSellers: document.getElementById('showTotalSellers'),
+    showUniqueSellers: document.getElementById('showUniqueSellers'),
+    showInvalidDomains: document.getElementById('showInvalidDomains'),
+    showInvalidAds: document.getElementById('showInvalidAds'),
+    showInvalidAppAds: document.getElementById('showInvalidAppAds'),
+    showTotalInvalid: document.getElementById('showTotalInvalid'),
+    showTotalFound: document.getElementById('showTotalFound'),
+    themeToggle: document.getElementById('themeToggle')
   };
 
-  const defaults = {
-    keyColor: '#FF8C00',
-    strColor: '#F0FFF0',
-    numColor: '#77c78a',
-    boolColor: '#7bbf8e',
-    showPanel: true,
-    showDomainList: true,
-    showNameList: true,
-    showTotalSellers: true,
-    showUniqueSellers: true,
-    showInvalidDomains: true,
-    showInvalidAds: true,
-    showInvalidAppAds: true,
-    showTotalInvalid: true,
-    showTotalFound: true
-  };
-
-  chrome.storage.local.get(defaults, (cfg) => {
-    for (const key in elements) {
-      if (elements[key].type === 'checkbox') {
-        elements[key].checked = cfg[key];
+  chrome.storage.local.get(defaults, cfg => {
+    for (const [key, element] of Object.entries(elements)) {
+      if (!element) continue;
+      if (key === 'themeToggle') {
+        element.checked = cfg.theme === 'light';
+      } else if (element.type === 'checkbox') {
+        element.checked = Boolean(cfg[key]);
       } else {
-        elements[key].value = cfg[key];
+        element.value = cfg[key] || '';
       }
     }
   });
 
-  document.getElementById("openSellersBtn").addEventListener("click", () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  const openFileOnCurrentOrigin = fileName => {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      const activeTab = tabs && tabs[0];
+      if (!activeTab || !activeTab.url) return;
+
       try {
-        const url = new URL(tabs[0].url);
-        const sellersUrl = url.origin + "/sellers.json";
-        chrome.tabs.create({ url: sellersUrl });
-      } catch (e) {
-        // ignore invalid URLs (e.g. chrome:// pages)
+        const url = new URL(activeTab.url);
+        chrome.tabs.create({ url: `${url.origin}/${fileName}` });
+      } catch {
       }
     });
-  });
+  };
 
-  document.getElementById("openBuyersBtn").addEventListener("click", () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      try {
-        const url = new URL(tabs[0].url);
-        const buyersUrl = url.origin + "/buyers.json";
-        chrome.tabs.create({ url: buyersUrl });
-      } catch (e) {
-        // ignore invalid URLs (e.g. chrome:// pages)
-      }
-    });
-  });
+  document.getElementById('openSellersBtn')?.addEventListener('click', () => openFileOnCurrentOrigin('sellers.json'));
+  document.getElementById('openBuyersBtn')?.addEventListener('click', () => openFileOnCurrentOrigin('buyers.json'));
 
-  document.getElementById("saveBtn").addEventListener("click", () => {
+  document.getElementById('saveBtn')?.addEventListener('click', () => {
     const newConfig = {};
-    for (const key in elements) {
-      newConfig[key] = elements[key].type === 'checkbox' ? elements[key].checked : elements[key].value;
+
+    for (const [key, element] of Object.entries(elements)) {
+      if (!element) continue;
+      if (key === 'themeToggle') {
+        newConfig.theme = element.checked ? 'light' : 'dark';
+      } else {
+        newConfig[key] = element.type === 'checkbox' ? element.checked : element.value;
+      }
     }
-    
+
     chrome.storage.local.set(newConfig, () => {
-      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        chrome.tabs.reload(tabs[0].id);
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        const activeTab = tabs && tabs[0];
+        if (activeTab && activeTab.id) chrome.tabs.reload(activeTab.id);
       });
     });
   });
